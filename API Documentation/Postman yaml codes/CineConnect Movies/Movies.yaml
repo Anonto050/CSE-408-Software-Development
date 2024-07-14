@@ -1,0 +1,3541 @@
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'CineConnect Movie API'
+  description: API for movie, theatre and showtime page display
+
+servers:
+  - url: 'https://localhost:4000'
+    description: 'Local development server'
+
+paths:
+  /v1/movies/:
+    parameters:
+      - name: title
+        description: The partial/full title to filter the list of movies
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: genre
+        description: The unique identifier of the genre to filter the list of movies
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/GenreId'
+      - name: language
+        description: The language to filter the list of movies
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: startYear
+        description: The lower bound of the release year of the movies to be searched
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: endYear
+        description: The upper bound of the release year of the movies to be searched
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: startRating
+        description: The lower bound of the rating of the movies to be searched
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: endRating
+        description: The upper bound of the rating of the movies to be searched
+        in: query
+        required: false
+        schema:
+          type: number
+      - name: offset
+        description: The offset of the list of movies sorted accordingly to start displaying from
+        in: query
+        required: true
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        description: The number of movies to display in the current page
+        in: query
+        required: true
+        schema:
+          type: integer
+          default: 10
+      - name: orderBy
+        description: The sorting order of the list of movies
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+            - nameAsc
+            - nameDes
+            - ratingAsc
+            - ratingDes
+            - releaseYearAsc
+            - releaseYearDes
+          default: nameAsc
+          
+    get:
+      summary: Read all movies filtered by the query parameters
+      responses:
+        '200':
+          description: The movies corresponding to the provided filtration criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - totalEntries
+                    - movies
+
+                  properties:
+                    totalEntries:
+                      type: integer
+                    movies:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/MovieCard'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/movie/{movieId}:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+    get:
+      summary: Read a specific movie
+      parameters:
+        - in: query
+          name: castLimit
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: reviewLimit
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - in: query
+          name: forumPostLimit
+          required: false
+          schema:
+            type: integer
+            default: 5
+      
+      responses:
+        '200':
+          description: The movie corresponding to the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movie'
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+    put:
+      summary: Edit a movie
+      description: Allows a user to edit a specific movie.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+      responses:
+        '200':
+          description: Movie successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully submitted for approval"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+  
+  /v1/movie/{movieId}/rate:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+    post:
+      summary: Submit a rating for a movie
+      description: Allows users to rate a specific movie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rating
+              properties:
+                rating:
+                  type: integer
+      responses:
+        '201':
+          description: Movie successfully rated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully rated"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    put:
+      summary: Edit rating for a movie
+      description: Allows a user to edit their rating for a specific movie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rating
+              properties:
+                rating:
+                  type: integer
+      responses:
+        '200':
+          description: Rating successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Rating successfully updated"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Delete a rating for a specific movie
+      description: Allows a user to delete the rating corresponding to the provided `movieId`. 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Rating successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Rating deleted successfully"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No movie/previous rating found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/watch:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+    post:
+      summary: Add a movie to watchlist
+      description: Allows users to add a specific movie to their watchlist
+      responses:
+        '201':
+          description: Movie successfully added to watchlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully added to watchlist"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Remove movie from watchlist
+      description: Removes the movie corresponding to the provided `movieId` from the user's watchlist. 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Movie successfully removed from watchlist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully removed from watchlist"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No movie/previous addition to watchlist found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/watched:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+    post:
+      summary: Mark a movie as watched
+      description: Allows users to mark a specific movie as watched and add it to their watched-list
+      responses:
+        '201':
+          description: Movie successfully added to watched-list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully added to watched-list"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Unmark movie as watched
+      description: Removes the movie corresponding to the provided `movieId` from the user's watched-list. 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Movie successfully removed from watched-list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully removed from watched-list"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No movie/previous addition to watched-list found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/awards-nominations:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+    get:
+      summary: Read all the awards of a specific movie
+      responses:
+        '200':
+          description: The awards for the corresponding `movieId`
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - awards
+                  - nominations
+
+                properties:
+                  awards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AwardCard'
+                  nominations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AwardCard'
+                  
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/movie/{movieId}/casts:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+    get:
+      summary: Read all the casts and crews of a specific movie
+      responses:
+        '200':
+          description: The casts for the corresponding `movieId`
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - directors
+                  - casts
+
+                properties:
+                  directors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - moviePersonId
+                        - name
+
+                      properties:
+                        moviePersonId:
+                          $ref: '#/components/schemas/MoviePersonId'
+                        name:
+                          type: string
+                  casts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CastCard'
+        
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/movie/{movieId}/similar:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+
+    get:
+      summary: Read a list of similar movies
+      responses:
+        '200':
+          description: The similar movies corresponding to the provided `movieId`. If user is logged in, user's preferences is also taken into account.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MovieCard'
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  
+  /v1/movie/submit:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Submit a new movie
+      description: Allows users to post a new movie, to be approved by admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '201':
+          description: Movie successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie successfully submitted for approval"
+                  requestId:
+                    $ref: '#/components/schemas/RequestId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+  /v1/award/submit:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Submit a new award
+      description: Allows users to post a new award, to be approved by admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '201':
+          description: Award successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Award successfully submitted for approval"
+                  requestId:
+                    $ref: "#/components/schemas/RequestId"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+  
+  /v1/awards/:
+    parameters:
+      - name: title
+        description: The title of the award to search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: year
+        description: The year of the award to search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: offset
+        description: The starting number of award for pagination
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: limit
+        description: The number of awards to fetch
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: orderBy
+        description: The sorting order of the list of awards
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+            - nameAsc
+            - nameDes
+            - startYear
+            - endYear
+          default: nameAsc
+    get:
+      summary: Read a list of awards 
+      responses:
+        '200':
+          description: The list of awards according to given filtering criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AwardCard"
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/award/{awardId}:
+    parameters:
+      - name: awardId
+        description: The unique identifier of the award
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/AwardId'
+    get:
+      summary: Read a specific award
+      responses:
+        '200':
+          description: The details of the award for the corresponding `awardId`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Award"
+                  
+        404:
+          description: No award found for the provided `awardId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Edit an award
+      description: Allows a user to edit a specific award.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Award'
+      responses:
+        '200':
+          description: Award successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Award successfully submitted for approval"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Award not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Award not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Remove an award
+      description: Removes the award corresponding to the provided `awardId` 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Award removal request successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Award removal request successfully submitted"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No award found for the provided `awardId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/moviePersons/:
+    parameters:
+      - name: name
+        description: The name of the movie person to search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: offset
+        description: The starting number of award for pagination
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: limit
+        description: The number of awards to fetch
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: orderBy
+        description: The sorting order of the list of movie persons
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+            - nameAsc
+            - nameDes
+          default: nameAsc
+    get:
+      summary: Read a list of movie persons
+      responses:
+        '200':
+          description: The list of movie persons according to given filtering criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MoviePerson"
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/moviePerson/submit:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Submit a new MoviePerson details
+      description: Allows users to submit a new MoviePerson details, to be approved by admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '201':
+          description: MoviePerson details successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "MoviePerson details successfully submitted for approval"
+                  requestId:
+                    $ref: '#/components/schemas/RequestId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+  
+  /v1/moviePerson/{moviePersonId}:
+    parameters:
+      - name: moviePersonId
+        description: The unique identifier of the MoviePerson
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MoviePersonId'
+    get:
+      summary: Read a specific MoviePerson's details
+      responses:
+        '200':
+          description: The details of the MoviePerson for the corresponding `moviePersonId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoviePerson'
+        404:
+          description: No movie person found for the provided `moviePersonId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Edit a MoviePerson's details
+      description: Allows a user to edit a specific MoviePerson's details
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoviePerson'
+      responses:
+        '200':
+          description: Movie Person details successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie Person details successfully submitted for approval"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie person not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie person not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+
+    delete:
+      summary: Remove a MoviePerson
+      description: Removes the MoviePerson corresponding to the provided `moviePersonId` 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Movie person removal request successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Movie person removal request successfully submitted"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No movie person found for the provided `moviePersonId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/movie/{movieId}/reviews:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+    get:
+      summary: Read all the reviews of a specific movie
+      responses:
+        '200':
+          description: The reviews for the corresponding `movieId`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewCard'
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/review/submit:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Submit a rating and review for a movie
+      description: Allows users to post a rating and review for a specific movie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCard'
+      responses:
+        '201':
+          description: Review successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Review submitted successfully"
+                  reviewId:
+                    $ref: "#/components/schemas/PostId"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+  
+  /v1/review/{reviewId}:
+    parameters:
+      - name: reviewId
+        description: The unique identifier of the review
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ReviewId'  
+
+    get:
+      summary: Read a specific review
+      responses:
+        '200':
+          description: The complete review for the corresponding `reviewId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCard'
+        '404':
+          description: No review found for the provided `reviewId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Edit a review for a movie
+      description: Allows the author to edit their review for a specific movie.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCard'
+      responses:
+        '200':
+          description: Review successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Review updated successfully"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie or review not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie or review not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Delete a specific review
+      description: Deletes the review corresponding to the provided `reviewId`. Only accessible to the review's author.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Review successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Review deleted successfully"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No review found for the provided `reviewId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/forum/join:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Join a discussion forum for a post
+      description: Allows users to join the forum for a specific movie.
+      responses:
+        '201':
+          description: Joined forum successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Joined forum successfully"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+    delete:
+      summary: Leave a discussion forum
+      description: Allows the user to leave a discussion forum for the provided `movieId`. 
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Left the forum successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Left the forum successfully"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/movie/{movieId}/forum:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  
+
+    get:
+      summary: Read all the discussion forum posts of a specific movie
+      responses:
+        '200':
+          description: The forum posts for the corresponding `movieId`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ForumPost'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                message: Unauthorized - Missing or invalid credentials
+        404:
+          description: No movie found for the provided `movieId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  
+  /v1/movie/{movieId}/forum-post/submit:
+    parameters:
+      - name: movieId
+        description: The unique identifier of the movie
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/MovieId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Submit a forum post for a movie
+      description: Allows users to upload a post in the forum for a specific movie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForumPost'
+      responses:
+        '201':
+          description: Post successfully uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post uploaded successfully"
+                  postId:
+                    $ref: "#/components/schemas/PostId"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+  /v1/post/{postId}:
+    parameters:
+      - name: postId
+        description: The unique identifier of the post
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/PostId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  
+      - name: commentLimit
+        in: query
+        required: true
+        schema:
+          type: integer
+          default: 10
+
+    get:
+      summary: Read a specific forum post
+      responses:
+        '200':
+          description: The complete discussion forum post for the corresponding `postId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForumPost'
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+        
+        '404':
+          description: No post found for the provided `postId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Edit a forum post for a movie
+      description: Allows the author to edit their post in the forum for a specific movie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForumPost'
+      responses:
+        '200':
+          description: Post successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post updated successfully"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Movie or post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Movie or post not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+    delete:
+      summary: Delete a specific post
+      description: Deletes the discussion forum post corresponding to the provided `postId`. Only accessible to the post's author.
+        
+      responses:
+        '200':
+          description: Post successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post deleted successfully"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No post found for the provided `postId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/post/{postId}/vote:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: postId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/PostId'
+    post:
+      summary: Upvote/downvote to a post
+      description: Allows users to upvote/downvote a specific post/comment/reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - voteType
+              properties:
+                voteType:
+                  type: string
+                  enum:
+                    - upvote
+                    - downvote
+      responses:
+        '201':
+          description: Vote successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vote successfully submitted"
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Post not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+    
+    delete:
+      summary: Remove vote
+      description: Deletes the existing vote to a forum post or comment or reply corresponding to the provided `postId`. Only accessible to the voter.
+        
+      responses:
+        '200':
+          description: Vote successfully removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Vote removed successfully"
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authorization required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No post/previous vote found for the provided `postId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/post/{postId}/comment:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: postId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/PostId'
+    post:
+      summary: Comment/reply to a post
+      description: Allows users to comment on a specific post or reply to other comments/replies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      responses:
+        '201':
+          description: Comment successfully posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Comment successfully posted"
+                  commentId:
+                    $ref: '#/components/schemas/PostId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Post not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+    
+    get:
+      summary: Read comments under a post
+      parameters:
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            default: 10
+      
+      responses:
+        '200':
+          description: The comments under the post corresponding to the provided `postId`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        404:
+          description: No post found for the provided `postId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/post/{postId}/report:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: postId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/PostId'
+    post:
+      summary: Report a post
+      description: Allows users to report a specific post, to be approved by admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostReport'
+      responses:
+        '201':
+          description: Report to post successfully submitted for approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Report to post successfully submitted for approval"
+                  reportId:
+                    $ref: '#/components/schemas/ReportId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Post not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+  /v1/report/{reportId}:
+    parameters:
+      - name: reportId
+        description: The unique identifier of the report
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ReportId"
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  
+
+    get:
+      summary: Read a specific report
+      responses:
+        '200':
+          description: The complete report to some user forum post for the corresponding `reportId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostReport'
+        '404':
+          description: No report found for the provided `reportId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  /v1/report/{reportId}/feedback:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ReportId'
+    post:
+      summary: Provide admin feedback for a submitted report
+      description: Allows admin to provide feedback to a specific report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+      responses:
+        '201':
+          description: Feedback successfully posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Feedback successfully posted"
+                  feedbackId:
+                    $ref: '#/components/schemas/FeedbackId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Report not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+  /v1/request/{requestId}:
+    parameters:
+      - name: requestId
+        description: The unique identifier of the request
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/RequestId"
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  
+
+    get:
+      summary: Read a specific request
+      responses:
+        '200':
+          description: The complete request submitted to add/edit movie/movie-person/award etc. for the corresponding `requestId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        '404':
+          description: No request found for the provided `requestId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  /v1/request/{requestId}/feedback:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/RequestId'
+    post:
+      summary: Provide admin feedback for a submitted request
+      description: Allows admin to provide feedback to a specific request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+      responses:
+        '201':
+          description: Feedback successfully posted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Feedback successfully posted"
+                  feedbackId:
+                    $ref: '#/components/schemas/FeedbackId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '404':
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Request not found"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+  /v1/feedback/{feedbackId}:
+    parameters:
+      - name: feedbackId
+        description: The unique identifier of the feedback
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/feedbackId'
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"  
+
+    get:
+      summary: Read a specific feedback
+      responses:
+        '200':
+          description: The complete feedback in response to some user request for the corresponding `feedbackId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+        '404':
+          description: No feedback found for the provided `feedbackId`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /v1/movie/{movieId}/theaters:
+    get:
+      summary: Get theaters showing a specific movie
+      description: Retrieve a list of theaters showing the specified movie.
+      parameters:
+        - in: path
+          name: movieId
+          required: true
+          schema:
+            type: string
+          description: The name or identifier of the movie.
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
+            format: "YYYY-MM-DD"
+          description: Optional date to filter showtimes. Defaults to current date if not provided.
+        - in: query
+          name: location
+          
+          required: false
+          schema:
+            type: string
+            format: "latitude,longitude"
+          description: User location (e.g., latitude and longitude)
+      responses:
+        '200':
+          description: A list of theaters showing the specified movie.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TheaterInfo'
+              example:
+                - theater_id: 789
+                  theater_name: "Downtown Cinema"
+                  address: "789 Broadway, City, Country"
+                  map_location: "40.730610,-73.935242"
+                  web_url: "https://downtowncinema.com"
+                  showtimes: ["2024-01-15T14:00", "2024-01-15T17:00", "2024-01-15T20:00"]
+                - theater_id: 101
+                  theater_name: "Uptown Theater"
+                  address: "101 Main St, City, Country"
+                  map_location: "40.712776,-74.005974"
+                  web_url: "https://uptowntheater.com"
+                  showtimes: ["2024-01-15T15:30", "2024-01-15T19:00"]
+  
+  /v1/theaters:                
+    get:
+      summary: Get theaters based on queries
+      description: Retrieve theater information based on location, time, price range, and movie name queries.
+      parameters:
+        - name: movie_name
+          in: query
+          description: Name of the movie
+          required: false
+          schema:
+            type: string
+        - name: location
+          in: query
+          description: User location (e.g., latitude and longitude)
+          required: true
+          schema:
+            type: string
+            format: "latitude,longitude"
+        - name: time
+          in: query
+          description: Preferred time for movie showings
+          required: false
+          schema:
+            type: string
+            format: "YYYY-MM-DD HH:mm"
+        - name: price_range
+          in: query
+          description: Price range for ticket cost
+          required: false
+          schema:
+            type: string
+            example: "10-20"
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            
+            examples:
+              curlRequest:
+                summary: Example curl request to get theaters based on queries
+                value: |-
+                  curl -X GET "https://localhost:8000/theaters?movie_name=PastLives"&location=40.7128,-74.0060&time=2024-01-15T18:30&price_range=10-20 -H "Authorization: API_KEY_HERE"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TheaterInfo'
+              example:
+                - theater_id: 123
+                  theater_name: "Sample Theater"
+                  address: "1234 Main St, City, Country"
+                  map_location: "40.7128,-74.0060"
+                  web_url: "https://sampletheater.com"
+                  admin_approval_status: "approved"
+                  image: "base64_encoded_image_data"
+                - theater_id: 456
+                  theater_name: "Another Theater"
+                  address: "5678 Elm St, City, Country"
+                  map_location: "42.3601,-71.0589"
+                  web_url: "https://anothertheater.com"
+                  admin_approval_status: "pending"
+                  image: "base64_encoded_image_data"
+
+
+    post:
+      summary: Incorporate a new theater
+      description: Add a new theater to the system.
+      
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TheaterInfo'
+            examples:
+              curlRequest:
+                summary: Example curl request to add a theater
+                value: |-
+                  curl -X POST "https://localhost:8000/theaters" -H "Content-Type: application/json" -d '{
+                    "theater_id": 123,
+                    "theater_name": "Sample Theater",
+                    "address": "1234 Main St, City, Country",
+                    "map_location": "40.7128,-74.0060",
+                    "web_url": "https://sampletheater.com",
+                    "admin_approval_status": "pending",
+                    "image": "base64_encoded_image_data"
+                  }'
+        
+      responses:
+        '201':
+          description: Theater successfully added
+          headers:
+            Location:
+              description: 'URL of the newly added theater'
+              schema:
+                type: string
+          
+          content:
+            
+            application/json:
+              example:
+                message: Theater successfully added
+                theater:
+                  theater_id: 123
+                  theater_name: Sample Theater
+                  address: '1234 Main St, City, Country'
+                  map_location: '40.7128,-74.0060'
+                  web_url: 'https://sampletheater.com'
+                  admin_approval_status: pending
+                  image: base64_encoded_image_data
+          
+          
+  /v1/theaters/{theaterId}/showtimes:
+    put:
+      summary: Update showtimes for existing theaters
+      description: Update showtimes for a specific theater identified by ID.
+      parameters:
+        - name: theaterId
+          in: path
+          description: ID of the theater to update showtimes
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowtimeList'
+            examples:
+              curlRequest:
+                summary: Example curl request to update showtimes
+                value: |-
+                  curl -X PUT "https://localhost:8000/theaters/{theaterId}/showtimes" -H "Authorization: API_KEY_HERE" -H "Content-Type: application/json" -d '[
+                    {
+                      "id": 1,
+                      "hall_id": 101,
+                      "movie_id": 201,
+                      "time": "2024-01-15 18:30",
+                      "ticket_price": 12.5
+                    },
+                    {
+                      "id": 2,
+                      "hall_id": 102,
+                      "movie_id": 202,
+                      "time": "2024-01-16 19:00",
+                      "ticket_price": 15.0
+                    }
+                  ]'
+              
+      responses:
+        '200':
+          description: Showtimes updated successfully
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              example:
+                message: Invalid input data
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                message: Unauthorized - Missing or invalid credentials
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              example:
+                message: Forbidden - Access to the resource is forbidden
+        '404':
+          description: Theater not found
+          content:
+            application/json:
+              example:
+                message: Theater not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              example:
+                message: Internal server error - Something went wrong
+
+  /v1/theater/submit:
+    parameters:
+      - name: Authorization
+        in: header
+        required: true
+        schema:
+          type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+    post:
+      summary: Add new theater request
+      description: Allows user to add request for a new theater
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Request'
+      responses:
+        '201':
+          description: Request successfully submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Request successfully submitted"
+                  requestId:
+                    $ref: '#/components/schemas/RequestId'
+
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Invalid input provided"
+
+        '401':
+          description: Authentication required or failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Authentication required"
+
+        '403':
+          description: Forbidden, insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Insufficient permissions"
+
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+                example:
+                  message: "Internal server error occurred"
+
+components:
+  schemas:
+    MovieId:
+      description: The unique identifier of a movie
+      type: string
+
+    RequestId:
+      description: The unique identifier of a request for a new movie/movie-person or update to an existing movie/movie-person etc. It will be set to null when used in request body of a POST request.
+      type: string
+    
+    ReportId:
+      description: The unique identifier of a report to a review/forum-post
+      type: string
+
+    FeedbackId:
+      description: The unique identifier of a feedback by admin
+      type: string
+
+    GenreId:
+      description: The unique identifier of a genre
+      type: string
+
+    AwardId:
+      description: The unique identifier of an award
+      type: string
+
+    MoviePersonId:
+      description: The unique identifier of a moviePerson
+      type: string
+
+    PostId:
+      description: The unique identifier of a review/forumPost/comment, will be set null during a POST request.
+      type: string
+    
+    Movie:
+      type: object
+      required:
+        - id
+        - title
+        - releaseYear
+        - length
+        - language
+        - countryOfOrigin
+        - certification
+        - rating
+        - genres
+        - directors
+
+      properties:
+        id:
+          $ref: '#/components/schemas/MovieId'
+        title:
+          type: string
+        releaseYear:
+          type: string
+        posterUrl:
+          type: string
+          format: uri
+        trailerUrl:
+          type: string
+          format: uri
+        plotSummary:
+          type: string
+        length:
+          type: string
+        language:
+          type: string
+        countryOfOrigin:
+          type: string
+        certification:
+          type: string
+        rating:
+          type: object
+          required:
+            - rating
+            - ratedBy
+
+          properties:
+            rating:
+              type: number
+            ratedBy:
+              type: integer
+            userRating: 
+              type: number
+              default: null
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/Genre'
+        directors:
+          type: array
+          items:
+            type: object
+            required:
+              - moviePersonId
+              - name
+
+            properties:
+              moviePersonId:
+                $ref: '#/components/schemas/MoviePersonId'
+              name:
+                type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        casts:
+          description: List of top casts
+          type: array
+          items:
+            $ref: '#/components/schemas/CastCard'
+        nominations:
+          type: integer
+        awards:
+          type: integer
+        watchListed:
+          type: boolean
+          default: false
+        watched:
+          type: boolean
+          default: false
+        reviews:
+          description: Top reviews of this movie
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewCard'
+        forumPosts:
+          description: Top forum posts of this movie
+          type: array
+          items:
+            $ref: '#/components/schemas/ForumPost'
+
+    MovieCard:
+      type: object
+      required:
+        - id
+        - title
+        - releaseYear
+        - posterUrl
+        - plotSummary
+        - length
+        - language
+        - certification
+
+      properties:
+        id:
+          $ref: '#/components/schemas/MovieId'
+        title:
+          type: string
+        releaseYear:
+          type: string
+        posterUrl:
+          type: string
+          format: uri
+        plotSummary:
+          type: string
+        length:
+          type: string
+        language:
+          type: string
+        certification:
+          type: string
+    
+    Genre:
+      type: object
+      required:
+        - genreId
+        - name
+
+      properties:
+        genreId:
+          $ref: '#/components/schemas/GenreId'
+        name:
+          type: string
+
+    CastCard:
+      type: object
+      required:
+        - castId
+        - name
+        - role
+
+      properties:
+        castId:
+          $ref: '#/components/schemas/MoviePersonId'
+        name:
+          type: string
+        role:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+
+    ReviewCard:
+      type: object
+      required:
+        - postId
+        - author
+        - timestamp
+        - rating
+        - hasSpoiler
+        - body
+        - upvotes
+        - downvotes
+      
+      properties:
+        postId:
+          $ref: '#/components/schemas/PostId'
+        author:
+          type: object
+          required:
+            - userId
+            - username
+
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            imageUrl:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:30:00+02:00'
+        rating:
+          type: integer
+        hasSpoiler:
+          type: boolean
+          default: true
+        body:
+          type: string
+        upvotes:
+          type: integer
+          default: 0
+        downvotes:
+          type: integer
+          default: 0
+
+    ForumPost:
+      type: object
+      required:
+        - postId
+        - author
+        - timestamp
+        - body
+        - upvotes
+        - downvotes
+        - replies
+      
+      properties:
+        postId:
+          $ref: '#/components/schemas/PostId'
+        author:
+          type: object
+          required:
+            - userId
+            - username
+
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            imageUrl:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:30:00+02:00'
+        body:
+          type: string
+        upvotes:
+          type: integer
+          default: 0
+        downvotes:
+          type: integer
+          default: 0
+        replies:
+          description: List the comments and their replies
+          type: array
+          items:
+            $ref: '#/components/schemas/ForumPost'
+
+    Comment:
+      required: 
+        - postId
+        - parnetPostId
+        - content
+      properties:
+        postId:
+          $ref: '#/components/schemas/PostId'
+        parentPostId:
+          $ref: '#/components/schemas/PostId'
+        content:
+          $ref: '#/components/schemas/ForumPost'
+    
+    PostReport:
+      type: object
+      required:
+        - reportId
+        - description
+      properties:
+        reportId:
+          $ref: '#/components/schemas/ReportId'
+        description:
+          type: string
+    
+    MoviePerson:
+      description: The detailed biography of a moviePerson
+      type: object
+      required:
+        - moviePersonId
+        - name
+        - description
+        - dateOfBirth
+        - nationality
+        - gender
+
+      properties:
+        moviePersonId:
+          $ref: '#/components/schemas/MoviePersonId'
+        name:
+          type: string
+        imageUrl:
+          type: string
+        description:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+          example: '1990-01-01'
+        nationality:
+          type: string
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - others
+        dateOfDate:
+          type: string
+          format: date
+          example: '1990-01-01'
+
+    Request:
+      required:
+        - requestId
+        - content
+        - contentType
+        - submittedBy
+
+      properties:
+        requestId:
+          $ref: '#/components/schemas/RequestId'
+        content:
+          oneOf:
+            - $ref: '#/components/schemas/Movie'
+            - $ref: "#/components/schemas/MoviePerson"
+            - $ref: "#/components/schemas/Award"
+            - $ref: "#/components/schemas/TheaterInfo"
+        contentType:
+          type: string
+          enum:
+            - movie
+            - moviePerson
+            - award
+            - theater
+        submittedBy:
+          description: User id of the user who submitted the request
+          type: string
+    
+    AwardCard:
+      type: object
+      required:
+        - name
+        - year
+        - awardId
+      properties:
+        name:
+          type: string
+        year:
+          type: string
+        awardId:
+          $ref: "#/components/schemas/AwardId"
+    
+    Award:
+      type: object
+      required:
+        - name
+        - year 
+        - categories
+
+      properties:
+        name:
+          description: Name of the award (e.g. Golden Globe)
+          type: string
+        year: 
+          type: string
+        categories:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - givenTo
+              - nominees
+
+            properties:
+              name:
+                description: Name of the category (e.g. Best Feature Film)
+                type: string
+              givenTo:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - type
+                    - id
+                  properties:
+                    type:
+                      description: Is it a movie or a person
+                      type: string
+                      enum:
+                        - movie
+                        - person
+                    id:
+                      description: Unique identifier of the movie/person
+                      type: string
+                    imageUrl:
+                      description: Poster url in case of a movie and image url in case of a person
+                      type: string
+                      format: uri
+              nominees:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - type
+                    - id
+                  properties:
+                    type:
+                      description: Is it a movie or a person
+                      type: string
+                      enum:
+                        - movie
+                        - person
+                    id:
+                      description: Unique identifier of the movie/person
+                      type: string
+                    imageUrl:
+                      description: Poster url in case of a movie and image url in case of a person
+                      type: string
+                      format: uri
+
+    Feedback:
+      type: object
+      required: 
+        - feedbackId
+        - status
+        - requestId
+      properties:
+        feedbackId:
+          $ref: '#/components/schemas/FeedbackId'
+        status:
+          type: string
+          enum:
+            - approved
+            - declined
+        requestId:
+          $ref: '#/components/schemas/RequestId'
+        message:
+          type: string
+    
+    TheaterInfo:
+      type: object
+      properties:
+        theater_id:
+          type: integer
+          description: ID of the theater
+        theater_name:
+          type: string
+          description: Name of the theater
+        address:
+          type: string
+          description: Address of the theater
+        map_location:
+          type: string
+          description: Map location coordinates
+        web_url:
+          type: string
+          format: uri
+          description: Website URL of the theater
+        admin_approval_status:
+          type: string
+          description: Approval status by the admin
+        image:
+          type: string
+          format: uri
+          description: Image of the theater
+      required:
+        - theater_id
+        - theater_name
+        - address
+        - map_location
+        - web_url
+        - admin_approval_status
+    
+    Showtime:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID of the showtime
+        hall_id:
+          type: integer
+          description: ID of the hall
+        movie_id:
+          type: integer
+          description: ID of the movie
+        time:
+          type: string
+          format: "YYYY-MM-DD HH:mm"
+          description: Time of the show
+        ticket_price:
+          type: number
+          format: float
+          description: Price of the ticket
+
+    ShowtimeList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Showtime'
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          description: A human readable error message
+          type: string
