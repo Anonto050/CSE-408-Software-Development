@@ -5,15 +5,15 @@ Welcome to the CineConnect API documentation. Below you will find the links to t
 ## CineConnect API Sections
 
 1. **CineConnect User Section**
-   - [Postman Documentation for User Section](#)
+   - [Postman Documentation for User Section](https://documenter.getpostman.com/view/32172495/2s9YsQ6UrL)
    - This section covers user authentication, user profile management, and other user-related endpoints.
 
 2. **CineConnect Movies Section**
-   - [Postman Documentation for Movies Section](#)
+   - [Postman Documentation for Movies Section](https://documenter.getpostman.com/view/32172495/2s9YsQ6Umx)
    - This section includes endpoints for managing movies, series, and related content.
 
 3. **CineConnect Marketplace Section**
-   - [Postman Documentation for Marketplace Section](https://documenter.getpostman.com/view/28670625/2s93JzMgwo)
+   - [Postman Documentation for Marketplace Section](https://documenter.getpostman.com/view/32172495/2s9YsQ6Un3)
    - This section provides endpoints for the movie/series-based products marketplace, including product listing, categories, and user reviews.
 
 ## How to Use the Postman Documentation
