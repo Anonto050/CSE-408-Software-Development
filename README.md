@@ -17,7 +17,7 @@ Welcome to the CineConnect project repository. This repository contains all the 
  
 - **[Architecture](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Architecture)**
   - This folder includes architectural diagrams and documentation that illustrate the system design and components of CineConnect.
-  - You'll find class diagrams, sequence diagrams, and other related documentation that provide insights into the system's structure.
+  - You'll find related diagrams that provide insights into the system's structure.
     
 - **[API Documentation](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/API%20Documentation)**
   - This folder contains detailed API documentation for various sections of the CineConnect platform, including User Section, Movies Section, and Marketplace Section.
