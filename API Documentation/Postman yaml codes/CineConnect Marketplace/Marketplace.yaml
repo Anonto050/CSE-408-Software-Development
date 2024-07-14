@@ -1,0 +1,623 @@
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'CineConnect Marketplace API'
+  description: 'API for movie/series-based products marketplace'
+
+servers:
+  - url: 'https://localhost:3000'
+    description: 'Local development server'
+
+paths:
+  /v1/marketplace/homepage:
+    get:
+      summary: Get homepage of the marketplace
+      description: Retrieve information for the homepage of the marketplace.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageData'
+
+      
+  /v1/marketplace/categories/{category}/products:
+    get:
+      summary: Get products by category
+      description: Retrieve a list of products belonging to a specific category.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+          description: The category of the products.
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Starting number of the result.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of products to fetch
+
+        - name: orderBy
+          description: The sorting order of the list of products
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - nameAsc
+              - nameDes
+            default: nameAsc
+
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            
+            examples:
+                curlRequest:
+                  summary: Example curl request to get paginated products by category
+                  value: |-
+                    curl -X GET "https://api.example.com/marketplace/categories/notebooks/products?page=2&limit=5" -H "Authorization: Bearer jwt_token_here"
+      responses:
+        '200':
+          description: A paginated list of products with the specified category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+              example:
+                items:
+                  - id: "nb123"
+                    name: "High-Performance Notebook"
+                    price: 899.99
+                    description: "A powerful notebook with high-end specs, perfect for gaming and professional work."
+                  - id: "nb456"
+                    name: "Compact Travel Notebook"
+                    price: 499.99
+                    description: "Lightweight and compact, ideal for travel and everyday use."
+                totalItems: 35
+                totalPages: 7
+                currentPage: 1
+              
+
+        '404':
+          description: Category not found.
+
+  /v1/marketplace/tags/{tag}/products:
+    get:
+      summary: Get products by tag with pagination
+      description: Retrieve a paginated list of products associated with a specific tag.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: tag
+          required: true
+          schema:
+            type: string
+          description: The tag of the products.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number of the results.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of products per page.
+        - name: orderBy
+          description: The sorting order of the list of products
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - nameAsc
+              - nameDes
+            default: nameAsc
+      responses:
+        '200':
+          description: A paginated list of products with the specified tag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+        '404':
+          description: Tag not found.
+
+
+  /v1/marketplace/products/{productId}:
+    get:
+      summary: Get individual product
+      description: Retrieve details of an individual product by ID.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+    delete:
+      summary: Delete a specific product
+      description: Allows authorized users to delete a specific product from the marketplace.
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product to be deleted.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      
+
+      responses:
+        '200':
+          description: Product successfully deleted
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized or token expired
+        '403':
+          description: Forbidden - user does not have permission to delete this product
+        '404':
+          description: Product not found
+
+  /v1/marketplace/users/{userId}/products:
+    get:
+      summary: Get list of products submitted by a specific user
+      description: Retrieve a list of products that a specific user has submitted to the marketplace.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the user.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            
+            examples:
+                curlRequest:
+                  summary: Example curl request to get list of products submitted by a specific user
+                  value: |-
+                    curl -X GET "https://api.example.com/marketplace/users/{userId}/products" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+
+      responses:
+        '200':
+          description: Successfully retrieved the list of products submitted by the user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+              examples:
+                jsonResponse:
+                  summary: Example JSON response for a list of products submitted by a user
+                  value: 
+                    - id: "prod789"
+                      name: "Stranger Things Notebook"
+                      description: "Themed notebook with exclusive Stranger Things artwork."
+                      price: 12.99
+                    - id: "prod101"
+                      name: "Friends Laptop Sleeve"
+                      description: "Durable laptop sleeve with iconic Friends show design."
+                      price: 22.50
+
+  /v1/marketplace/products/{productId}/review:
+    post:
+      summary: Submit a rating and review for a product
+      description: Allows users to post a rating and review for a specific product.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewRatingReview'
+            examples:
+              curlExample:
+                summary: Example curl request for submitting a review
+                value: |-
+                  curl -X POST "https://api.example.com/marketplace/products/12345/review" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" \
+                  -d '{
+                        "reviewerId": "reviewer123",
+                        "rating": 4,
+                        "review": "Great product, really enjoyed using it."
+                      }'
+      responses:
+        '201':
+          description: Review successfully submitted
+        '400':
+          description: Invalid input
+        '404':
+          description: Product not found
+  
+  /v1/marketplace/products/{productId}/review/{reviewId}:
+    delete:
+      summary: Delete a product review
+      description: Allows users to delete their own review for a specific product.
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product.
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the review.
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      responses:
+        '200':
+          description: Review successfully deleted
+        '400':
+          description: Invalid input or request
+        '401':
+          description: Unauthorized or token expired
+        '404':
+          description: Product or review not found
+
+  /v1/marketplace/products/{productId}/review/{reviewId}/report:
+    post:
+      summary: Report a specific product review
+      description: Allows users to report a specific review for a product.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product related to the review.
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the review being reported.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Report'
+              
+      responses:
+        '201':
+          description: Review report successfully submitted
+        '400':
+          description: Invalid input or missing required fields
+        '404':
+          description: Product or review not found
+        '401':
+          description: Unauthorized, if user authentication is required
+
+  /v1/marketplace/product/submit:
+    post:
+      summary: Post new product
+      description: Submit a new product to the marketplace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Product successfully submitted
+
+  /v1/marketplace/products/{productId}/edit:
+    put:
+      summary: Edit an existing product
+      description: Update the details of an existing product in the marketplace.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product to be updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+            examples:
+              curlExample:
+                summary: Example curl request for editing a product
+                value: |-
+                  curl -X PUT "https://api.example.com/marketplace/products/{productId}" \
+                  -H "Content-Type: application/json" \
+                  -d '{
+                    "name": "Updated Product Name",
+                    "description": "Updated description here",
+                    "price": 99.99
+                  }'
+
+
+      responses:
+        '200':
+          description: Product successfully updated
+        '400':
+          description: Invalid input
+        '404':
+          description: Product not found
+
+
+  /v1/marketplace/products/{productId}/report:
+    post:
+      summary: Report a specific product
+      description: Allows users to report a specific product for review.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwibmFtZSI6IkRlbW8gVXNlciIsImlhdCI6MTYxMjM5MDIyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the product being reported.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Report'
+            examples:
+              curlExample:
+                summary: Example curl request for reporting a product
+                value: |-
+                    curl -X POST "https://api.example.com/marketplace/products/{productId}/report" -H "Content-Type: application/json" -d '{
+                    "reason": "Inappropriate content",
+                    "details": "The product description contains offensive material.",
+                    "reporterId": "user123"
+                    }'
+
+
+      responses:
+        '201':
+          description: Report successfully submitted
+        '400':
+          description: Invalid input or missing required fields
+        '404':
+          description: Product not found
+        '401':
+          description: Unauthorized, if user authentication is required
+
+  
+
+components:
+  schemas:
+    HomepageData:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        featuredProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        
+        trending:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductMovie'
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+
+    ProductMovie:
+      type: object
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        movieId:
+          type: string
+  
+    PaginatedProductList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        totalItems:
+          type: integer
+        
+    NewProduct:
+      type: object
+      properties:
+        ownerId:
+          type: string
+        productName:
+          type: string
+        thumbnailId:
+          type: string
+        availableQuantity:
+          type: integer
+        category:
+          type: string
+        tag:
+          type: string
+        sizeId:
+          type: string
+        colorId:
+          type: string
+        price:
+          type: number
+          format: float
+    Product:
+      type: object
+      properties:
+        productId:
+          type: string
+        ownerId:
+          type: string
+        productName:
+          type: string
+        thumbnailId:
+          type: string
+        availableQuantity:
+          type: integer
+        category:
+          type: string
+        tag:
+          type: string
+        sizeId:
+          type: string
+        colorId:
+          type: string
+        price:
+          type: number
+          format: float
+    NewRatingReview:
+      type: object
+      properties:
+        reviewId:
+          type: string
+        reviewerId:
+            type: string
+            description: The unique identifier of the reviewer
+        rating:
+            type: integer
+            description: Rating for the product (e.g., 1 to 5)
+        review:
+            type: string
+            description: Detailed review of the product 
+    RatingReview:
+      type: object
+      properties:
+        reviewerId:
+            type: string
+            description: The unique identifier of the reviewer
+        rating:
+            type: integer
+            description: Rating for the product (e.g., 1 to 5)
+        review:
+            type: string
+            description: Detailed review of the product      
+
+    Report:
+        type: object
+        properties:
+                reason:
+                  type: string
+                  description: The reason for reporting the product.
+                details:
+                  type: string
+                  description: Detailed description of the issue or concern.
+                reporterId:
+                  type: string
+                  description: (Optional) Unique identifier of the user reporting the product.            
+                             
+
+  
