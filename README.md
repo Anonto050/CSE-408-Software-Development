@@ -6,22 +6,25 @@ Welcome to the CineConnect project repository. This repository contains all the 
 
 ## Repository Structure
 
-- **[API Documentation](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/API%20Documentation)**
-  - This folder contains detailed API documentation for various sections of the CineConnect platform, including User Section, Movies Section, and Marketplace Section.
-  - The API documentation is available in both OpenAPI format and Postman collections.
-
-- **[Architecture](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Architecture)**
-  - This folder includes architectural diagrams and documentation that illustrate the system design and components of CineConnect.
-  - You'll find class diagrams, sequence diagrams, and other related documentation that provide insights into the system's structure.
-
-- **[Mock UI](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Mock%20UI)**
-  - This folder contains mock user interfaces designed for the CineConnect platform.
-  - It includes wireframes and prototype designs that help visualize the user experience and interface layout.
-
 - **[Scope Presentation](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Scope%20presentation)**
   - This folder holds the scope presentation slides.
   - The presentation outlines the project scope, objectives, deliverables, and milestones.
   - It provides a high-level overview of the project's goals and plan.
+ 
+- **[Mock UI](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Mock%20UI)**
+  - This folder contains mock user interfaces designed for the CineConnect platform.
+  - It includes wireframes and prototype designs that help visualize the user experience and interface layout.
+ 
+- **[Architecture](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/Architecture)**
+  - This folder includes architectural diagrams and documentation that illustrate the system design and components of CineConnect.
+  - You'll find class diagrams, sequence diagrams, and other related documentation that provide insights into the system's structure.
+    
+- **[API Documentation](https://github.com/Anonto050/CSE-408-Software-Development/tree/main/API%20Documentation)**
+  - This folder contains detailed API documentation for various sections of the CineConnect platform, including User Section, Movies Section, and Marketplace Section.
+  - The API documentation is available in both OpenAPI format and Postman collections.
+
+
+
 
 ## Project Repository
 
@@ -31,9 +34,9 @@ The project repository for CineConnect can be found at the following link:
 ## Team Members
 
 The CineConnect project is developed by the following team members:
-1. Anonto (Your Name)
-2. [Team Member 2 Name]
-3. [Team Member 3 Name]
+1. [Riad Ahmed Anonto](https://github.com/Anonto050)
+2. [Md Ishrak Ahsan](https://github.com/ishrak26)
+3. [Farhan Tahmidul Karim](https://github.com/farhanitrate35)
 
 ## Getting Started
 
