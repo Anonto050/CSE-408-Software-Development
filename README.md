@@ -29,7 +29,7 @@ Welcome to the CineConnect project repository. This repository contains all the 
 ## Project Repository
 
 The project repository for CineConnect can be found at the following link:
-- [CineConnect Project Repository](https://github.com/Anonto050/CSE-408-Software-Development/tree/main)
+- [CineConnect Project Repository](https://github.com/Anonto050/CineConnect-Ultimate-Movie-Enthusiasts-Hub)
 
 ## Team Members
 
