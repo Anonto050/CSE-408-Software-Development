@@ -1,0 +1,1308 @@
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'CineConnect User API'
+  description: API for login/registration, user profile and landing page display
+
+servers:
+  - url: 'https://localhost:3000'
+    description: 'Local development server'
+
+paths:
+  /v1/login:
+    post:
+      summary: User Login
+      description: Authenticates user and returns a token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInfo'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: authorization token for the authorized user
+                  user:
+                    $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/logout:
+    post:
+      summary: User Logout
+      description: Invalidates the user's session or authentication token to log them out.
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "You have been successfully logged out."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/register:
+    post:
+      summary: User Registration
+      description: Creates a new user account with the provided details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  description: User's first name
+                lastName:
+                  type: string
+                  description: User's last name
+                email:
+                  type: string
+                  format: email
+                  description: User's email address
+                username:
+                  type: string
+                  description: Preferred username
+                password:
+                  type: string
+                  format: password
+                  description: Account password
+                image:
+                  type: string
+                  format: uri
+                  description: User's profile image
+                gender:
+                  type: string
+                  enum: [male, female, other]
+                  description: User's gender
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: '1990-01-01'
+                  description: User's date of birth
+                role:
+                  type: string
+                  enum: [user, admin, theatreModerator]
+                  description: User's role in the system
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User successfully registered."
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/home:
+    get:
+      summary: Get Homepage Content
+      description: Retrieves homepage content, including a list of postcards and CineFellows suggestions.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+          description: The number of posts to load
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: number
+          description: The number of post after which to load
+      responses:
+        '200':
+          description: Homepage content, including postcards and CineFellows suggestions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postcards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostCard'
+                  cineFellowsSuggestions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CineFellow'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/search/profiles:
+    get:
+      summary: Search User Profiles
+      description: Allows users to search for other profiles by a query string.
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+          description: The search string to query for user profiles.
+      responses:
+        '200':
+          description: An array of user profiles matching the search query.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CineFellow'
+        '400':
+          description: Bad request, such as a missing query string.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}:
+    get:
+      summary: Get User Profile
+      description: Retrieves data related to the user's profile.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: The username of the user whose profile is being retrieved.
+      responses:
+        '200':
+          description: A detailed user profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  watched:
+                    type: array
+                    maxItems: 7
+                    items:
+                      $ref: '#/components/schemas/ProfileMovieCard'
+                  watchlist:
+                    type: array
+                    maxItems: 7
+                    items:
+                      $ref: '#/components/schemas/ProfileMovieCard'
+                  reviewed:
+                    type: array
+                    maxItems: 2
+                    items:
+                      $ref: '#/components/schemas/ProfileReviewCard'
+                  discussions:
+                    type: array
+                    maxItems: 7
+                    items:
+                      $ref: '#/components/schemas/ProfileDiscussionForumCard'
+                  cineFellows:
+                    type: array
+                    maxItems: 7
+                    items:
+                      $ref: '#/components/schemas/ProfileCineFellowCard'
+                  achievements:
+                    type: array
+                    maxItems: 9
+                    items:
+                      $ref: '#/components/schemas/ProfileAchievementCard'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}/edit:
+    put:
+      summary: Edit User Profile
+      description: Partially updates the user's profile information, allowing changes to specific fields excluding id, dob, gender, and role.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: The current username of the user whose profile is being edited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                image:
+                  type: string
+                  format: uri
+                # Additional properties can be updated if necessary. Username availability check is handled server-side.
+      responses:
+        '200':
+          description: Profile successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '400':
+          description: Invalid input, such as an unavailable username or invalid email format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized action, such as attempting to edit another user's profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict, such as a username that is already taken.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}/common-forums:
+    get:
+      summary: Get Common Forums with Another User
+      description: Retrieves the list of forums that both the current user and the specified user are part of.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: The username of the current user.
+      responses:
+        '200':
+          description: A list of common forums between the users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfileDiscussionForumCard'
+        '401':
+          description: Unauthorized if the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden if the user does not have permission to view the other user's forums.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found if either username does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/notifications:
+    get:
+      summary: Get User Notifications
+      description: Retrieves a list of notifications for the logged-in user.
+      parameters:
+        - in: query
+          name: since
+          schema:
+            type: string
+            format: date-time
+          description: Optional datetime parameter to fetch notifications since a specific time.
+      responses:
+        '200':
+          description: A list of notifications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized, such as when the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/notifications/mark-read:
+    post:
+      summary: Mark Notification as Read
+      description: Marks a specified notification as read for the logged-in user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notificationId:
+                  type: string
+                  description: The unique identifier of the notification to mark as read.
+      responses:
+        '200':
+          description: Notification marked as read successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the operation was successful.
+                  message:
+                    type: string
+                    description: A message detailing the status of the operation.
+        '400':
+          description: Bad request, such as when the notificationId is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized, indicating the user is not logged in or does not have permission to mark the notification as read.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found, when the notificationId does not correspond to any existing notification.
+          content:
+            application/json:
+                schema:
+                    $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error, such as a failure in marking the notification as read.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/cinefellows:
+    get:
+      summary: Get CineFellows and Requests
+      description: Retrieves lists of CineFellows, pending incoming requests, and pending outgoing requests.
+      responses:
+        '200':
+          description: Lists of CineFellows and CineFellow requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  myCineFellows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CineFellow'
+                  pendingRequests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CineFellowRequest'
+                  outgoingRequests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CineFellowRequest'
+        '401':
+          description: Unauthorized, such as when the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/cinefellows/accept:
+    post:
+      summary: Accept CineFellow Request
+      description: Accepts an incoming CineFellow request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  description: The unique identifier of the CineFellow request to accept.
+      responses:
+        '200':
+          description: CineFellow request successfully accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "CineFellow request accepted successfully."
+        '400':
+          description: Bad request, such as a missing or invalid requestId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized, such as when the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Request not found, such as when the requestId does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/cinefellows/reject:
+    delete:
+      summary: Reject or Cancel CineFellow Request
+      description: Rejects an incoming CineFellow request or cancels an outgoing CineFellow request.
+      parameters:
+        - in: query
+          name: requestId
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the CineFellow request to reject or cancel.
+      responses:
+        '200':
+          description: CineFellow request successfully rejected or cancelled.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "CineFellow request rejected or cancelled successfully."
+        '400':
+          description: Bad request, such as a missing or invalid requestId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized, such as when the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Request not found, such as when the requestId does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/cinefellows/{username}:
+    delete:
+      summary: Un-fellow a CineFellow
+      description: Removes an existing CineFellow relationship.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: The username of the CineFellow to un-fellow.
+      responses:
+        '200':
+          description: CineFellow successfully un-fellowed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "CineFellow successfully un-fellowed."
+        '400':
+          description: Bad request, such as a missing or invalid username.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized, such as when the user is not logged in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden, such as when the user does not have permission to unfellow the specified CineFellow.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: CineFellow not found, such as when the username does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}/watched:
+    get:
+      summary: Get Watched Movies
+      description: Retrieves a list of all movies that the user has watched.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of watched movies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MovieCard'
+
+  /v1/profile/{username}/watchlist:
+    get:
+      summary: Get Watchlist
+      description: Retrieves a list of all movies in the user's watchlist.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of movies in the watchlist.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MovieCard'
+    delete:
+      summary: Remove Movie from Watchlist
+      description: Removes a movie from the user's watchlist.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: movieId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Movie successfully removed from watchlist.
+        '404':
+          description: Movie not found in watchlist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}/reviews:
+    get:
+      summary: Get User Reviews
+      description: Retrieves a list of all reviews posted by the user.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of user's reviews.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReviewPost'
+
+  /v1/profile/{username}/forums:
+    get:
+      summary: Get Joined Forums
+      description: Retrieves a list of all forums that the user has joined.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of joined forums.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfileDiscussionForumCard'
+    delete:
+      summary: Leave Forum
+      description: Removes the user from a forum.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: forumId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successfully left the forum.
+        '404':
+          description: Forum not found or user not a member of the forum.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/profile/{username}/awards-achievements:
+    get:
+      summary: Get Awards and Achievements
+      description: Retrieves a list of all awards and achievements of the user.
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of user's awards and achievements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProfileAchievementCard'
+
+
+components:
+  schemas:
+    UserId:
+      description: The unique identifier of a user
+      type: string
+
+    Username: 
+      type: string
+      description: The unique username for a user account
+
+    Password:
+      type: string
+      description: password for a user account
+      default: null
+    
+    FirstName:
+      description: First name of a user
+      type: string
+
+    LastName:
+      description: Last name of a user
+      type: string
+
+    Email:
+        description: Email ID of a user
+        type: string
+        format: email
+
+    Dob:
+      description: Date of birth of a user
+      type: string
+      format: date
+      example: '1990-01-01'
+
+    Gender:
+      description: Gender of a user
+      type: string
+      enum:
+        - male
+        - female
+        - others
+
+    Image:
+      description: Image of a user
+      type: string
+      format: uri
+
+    Role:
+      description: Role of the owner of an account
+      type: string
+      enum:
+        - user
+        - admin
+
+    LoginInfo:
+      type: object
+      required:
+          - Username
+          - Password
+      properties:
+          username:
+            $ref: '#/components/schemas/Username'
+          password:
+             $ref: '#/components/schemas/Password'
+
+    UserInfo:
+      type: object
+      required:
+        - id
+        - username
+        - firstName
+        - lastName
+        - email
+        - dob
+        - password
+        - image
+        - gender
+        - role
+      properties:
+        id:
+          $ref: '#/components/schemas/UserId'
+        username:
+          $ref: '#/components/schemas/Username'
+        firstName:
+          $ref: '#/components/schemas/FirstName'
+        lastName:
+          $ref: '#/components/schemas/LastName'
+        password:
+          $ref: '#/components/schemas/Password'
+        email:
+          $ref: '#/components/schemas/Email'
+        dob:
+          $ref: '#/components/schemas/Dob'
+        image:
+          $ref: '#/components/schemas/Image'
+        gender:
+          $ref: '#/components/schemas/Gender'
+        role:
+          $ref: '#/components/schemas/Role'
+
+    Notification:
+      type: object
+      properties:
+        notificationId:
+          type: string
+        type:
+          type: string
+          description: The type of the notification (e.g., message, alert, update).
+        message:
+          type: string
+          description: The content of the notification.
+        timestamp:
+          type: string
+          format: date-time
+          description: The time when the notification was generated.
+        read:
+          type: boolean
+          description: Whether the notification has been read.
+
+    CineFellow:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user.
+        username:
+          type: string
+          description: Username of the user.
+        imageUrl:
+          type: string
+          format: uri
+          description: URL to the user's profile image.
+        bio:
+          type: string
+          description: A short biography of the user.
+        cineFellowCount:
+          type: integer
+          description: Number of cineFellows the user has.
+        commonForums:
+          type: integer
+          description: Number of common discussion forums with the user.
+
+    ProfileMovieCard:
+      type: object
+      properties:
+        movieId:
+          type: string
+        title:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        releaseYear:
+          type: integer
+        genre:
+          type: string
+
+    ProfileReviewCard:
+      type: object
+      properties:
+        reviewId:
+          type: string
+        movieTitle:
+          type: string
+        rating:
+          type: number
+          format: float
+        reviewText:
+          type: string
+
+    ProfileDiscussionForumCard:
+      type: object
+      properties:
+        forumId:
+          type: string
+        movieTitle:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+
+    ProfileCineFellowCard:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+
+    ProfileAchievementCard:
+      type: object
+      properties:
+        achievementId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+
+    CineFellowRequest:
+      type: object
+      properties:
+        requestId:
+          type: string
+          description: Unique identifier for the CineFellow request.
+        username:
+          type: string
+          description: Username of the user who sent or received the request.
+        image:
+          type: string
+          format: uri
+          description: URL to the user's profile image.
+        commonForumsCount:
+          type: integer
+          description: Number of common forums shared with the user.
+        
+    PostId:
+      description: The unique identifier of a review/forumPost/comment
+      type: string
+
+    PostCard:
+      type: object
+      required:
+        - type
+        - post
+      properties:
+        type:
+          type: string
+          enum: [forumPost, reviewPost]
+          description: The type of post.
+        post:
+          oneOf:
+            - $ref: '#/components/schemas/ForumPost'
+            - $ref: '#/components/schemas/ReviewPost'
+
+    ForumPost:
+      type: object
+      required:
+        - postId
+        - author
+        - timestamp
+        - body
+        - upvotes
+        - downvotes
+        - replies
+      
+      properties:
+        postId:
+          $ref: '#/components/schemas/PostId'
+        author:
+          type: object
+          required:
+            - userId
+            - username
+
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            imageUrl:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:30:00+02:00'
+        body:
+          type: string
+        upvotes:
+          type: integer
+        downvotes:
+          type: integer
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForumPost'
+
+    ReviewPost:
+      type: object
+      required:
+        - postId
+        - author
+        - timestamp
+        - rating
+        - hasSpoiler
+        - body
+        - upvotes
+        - downvotes
+      
+      properties:
+        postId:
+          $ref: '#/components/schemas/PostId'
+        author:
+          type: object
+          required:
+            - userId
+            - username
+
+          properties:
+            userId:
+              type: string
+            username:
+              type: string
+            imageUrl:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+          example: '2024-01-08T12:30:00+02:00'
+        rating:
+          type: integer
+        hasSpoiler:
+          type: boolean
+        body:
+          type: string
+        upvotes:
+          type: integer
+        downvotes:
+          type: integer
+
+    MovieId:
+      description: The unique identifier of a movie
+      type: string
+
+    GenreId:
+      description: The unique identifier of a genre
+      type: string
+
+    MoviePersonId:
+      description: The unique identifier of a moviePerson
+      type: string
+    
+    Movie:
+      type: object
+      required:
+        - id
+        - title
+        - releaseYear
+        - length
+        - language
+        - countryOfOrigin
+        - certification
+        - rating
+        - genres
+        - directors
+
+      properties:
+        id:
+          $ref: '#/components/schemas/MovieId'
+        title:
+          type: string
+        releaseYear:
+          type: string
+        posterUrl:
+          type: string
+        trailerUrl:
+          type: string
+        plotSummary:
+          type: string
+        length:
+          type: string
+        language:
+          type: string
+        countryOfOrigin:
+          type: string
+        certification:
+          type: string
+        rating:
+          type: object
+          required:
+            - rating
+            - ratedBy
+
+          properties:
+            rating:
+              type: number
+            ratedBy:
+              type: integer
+            userRating: 
+              type: number
+              default: null
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/Genre'
+        directors:
+          type: array
+          items:
+            type: object
+            required:
+              - moviePersonId
+              - name
+
+            properties:
+              moviePersonId:
+                $ref: '#/components/schemas/MoviePersonId'
+              name:
+                type: string
+        photos:
+          type: array
+          items:
+            type: string
+        casts:
+          description: List of top 20 casts
+          type: array
+          items:
+            $ref: '#/components/schemas/CastCard'
+        nominations:
+          type: integer
+        awards:
+          type: integer
+        watchListed:
+          type: boolean
+          default: false
+        watched:
+          type: boolean
+          default: false
+
+    MovieCard:
+      type: object
+      required:
+        - id
+        - title
+        - releaseYear
+        - posterUrl
+        - plotSummary
+        - length
+        - language
+        - certification
+
+      properties:
+        id:
+          $ref: '#/components/schemas/MovieId'
+        title:
+          type: string
+        releaseYear:
+          type: string
+        posterUrl:
+          type: string
+        plotSummary:
+          type: string
+        length:
+          type: string
+        language:
+          type: string
+        certification:
+          type: string
+    
+    Genre:
+      type: object
+      required:
+        - genreId
+        - name
+
+      properties:
+        genreId:
+          $ref: '#/components/schemas/GenreId'
+        name:
+          type: string
+
+    CastCard:
+      type: object
+      required:
+        - castId
+        - name
+        - role
+
+      properties:
+        castId:
+          $ref: '#/components/schemas/MoviePersonId'
+        name:
+          type: string
+        role:
+          type: string
+        imageUrl:
+          type: string
+
+    MoviePerson:
+      description: The detailed biography of a moviePerson
+      type: object
+      required:
+        - moviePersonId
+        - name
+        - description
+        - dateOfBirth
+        - nationality
+        - gender
+
+      properties:
+        moviePersonId:
+          $ref: '#/components/schemas/MoviePersonId'
+        name:
+          type: string
+        imageUrl:
+          type: string
+        description:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+          example: '1990-01-01'
+        nationality:
+          type: string
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - others
+        dateOfDate:
+          type: string
+          format: date
+          example: '1990-01-01'
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          description: A human readable error message
+          type: string
